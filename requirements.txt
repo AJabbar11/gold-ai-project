@@ -1,8 +1,5 @@
 streamlit
 yfinance
 pandas
-numpy
-plotly
-stable-baselines3
-gymnasium
+pandas_ta
 requests
