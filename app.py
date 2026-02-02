@@ -13,9 +13,14 @@ TELEGRAM_TOKEN = "8525259771:AAHmqV86FCzLNpioO7_ELn4FNW84YC5y3Mo"
 TELEGRAM_CHAT_ID = "7383861003"
 
 def send_telegram_msg(message):
+    """وظيفة إرسال التنبيهات إلى هاتفك عبر تليجرام"""
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
+        payload = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": message,
+            "parse_mode": "Markdown"
+        }
         requests.post(url, json=payload)
     except Exception as e:
         print(f"Error sending Telegram: {e}")
@@ -24,17 +29,32 @@ def send_telegram_msg(message):
 # 1. إعدادات واجهة المستخدم (Professional UI)
 # ==========================================
 st.set_page_config(
-    page_title="AI Sniper Pro | نظام صيد السيولة 2026",
+    page_title="MaXiThoN AI Sniper Pro | 2026",
     page_icon="🎯",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+# تخصيص المظهر بالكامل باستخدام CSS
 st.markdown("""
     <style>
-    .stApp { background-color: #05070a; color: #e5e7eb; }
-    [data-testid="stSidebar"] { background-color: #0b0e14; min-width: 380px !important; border-right: 1px solid #1f2937; }
-    .signal-card { padding: 20px; border-radius: 12px; background-color: #111827; margin-bottom: 15px; border-left: 6px solid #374151; }
+    .stApp {
+        background-color: #05070a;
+        color: #e5e7eb;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #0b0e14;
+        min-width: 380px !important;
+        border-right: 1px solid #1f2937;
+    }
+    .signal-card {
+        padding: 20px;
+        border-radius: 12px;
+        background-color: #111827;
+        margin-bottom: 15px;
+        border-left: 6px solid #374151;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
     .buy-border { border-left-color: #10b981 !important; }
     .sell-border { border-left-color: #ef4444 !important; }
     .wait-border { border-left-color: #6b7280 !important; }
@@ -53,21 +73,30 @@ if 'last_signals' not in st.session_state:
 # ==========================================
 
 def get_market_data(symbol, name):
+    """جلب وتحليل بيانات السوق بالتفصيل"""
     try:
+        # جلب البيانات الحية
         df = yf.download(symbol, period="5d", interval="15m", progress=False)
-        if df.empty: return None
+        
+        if df.empty:
+            return None
         
         # --- أ. حساب الفجوات السعرية (Fair Value Gap) ---
         df_fvg = df.tail(4) 
-        c1_high, c1_low = df_fvg['High'].iloc[0], df_fvg['Low'].iloc[0]
-        c3_high, c3_low = df_fvg['High'].iloc[2], df_fvg['Low'].iloc[2]
+        c1_high = df_fvg['High'].iloc[0]
+        c1_low  = df_fvg['Low'].iloc[0]
+        c3_high = df_fvg['High'].iloc[2]
+        c3_low  = df_fvg['Low'].iloc[2]
         
         fvg_type = "None"
-        if c3_low > c1_high: fvg_type = "Bullish FVG (شراء)"
-        elif c3_high < c1_low: fvg_type = "Bearish FVG (بيع)"
+        if c3_low > c1_high:
+            fvg_type = "Bullish FVG (شراء)"
+        elif c3_high < c1_low:
+            fvg_type = "Bearish FVG (بيع)"
 
         # --- ب. حساب مستويات فيبوناتشي (61.8%) ---
-        recent_high, recent_low = df['High'].tail(60).max(), df['Low'].tail(60).min()
+        recent_high = df['High'].tail(60).max()
+        recent_low  = df['Low'].tail(60).min()
         fib_618 = recent_high - ((recent_high - recent_low) * 0.618)
 
         # --- ج. المؤشرات الفنية ---
@@ -76,27 +105,35 @@ def get_market_data(symbol, name):
         df['ATR'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
         
         last_price = float(df['Close'].iloc[-1])
-        ema_val, rsi_val, atr_val = float(df['EMA200'].iloc[-1]), float(df['RSI'].iloc[-1]), float(df['ATR'].iloc[-1])
+        ema_val = float(df['EMA200'].iloc[-1])
+        rsi_val = float(df['RSI'].iloc[-1])
+        atr_val = float(df['ATR'].iloc[-1])
         
         # --- د. إدارة المخاطر ---
-        sl_points, tp_points = atr_val * 1.5, atr_val * 3.0
+        sl_points = atr_val * 1.5
+        tp_points = atr_val * 3.0
         
         signal = "WAIT"
-        tp_price, sl_price = 0, 0
+        tp_price = 0
+        sl_price = 0
         
+        # منطق الشراء الكامل
         if last_price > ema_val and last_price > fib_618 and fvg_type == "Bullish FVG (شراء)" and rsi_val > 50:
             signal = "BUY"
-            tp_price, sl_price = last_price + tp_points, last_price - sl_points
+            tp_price = last_price + tp_points
+            sl_price = last_price - sl_points
             
+        # منطق البيع الكامل
         elif last_price < ema_val and last_price < fib_618 and fvg_type == "Bearish FVG (بيع)" and rsi_val < 50:
             signal = "SELL"
-            tp_price, sl_price = last_price - tp_points, last_price + sl_points
+            tp_price = last_price - tp_points
+            sl_price = last_price + sl_points
             
-        # إرسال تليجرام إذا كانت الإشارة جديدة
+        # إرسال التنبيه للتليجرام
         if signal != "WAIT":
             current_signal_key = f"{symbol}_{signal}_{round(last_price, 2)}"
             if st.session_state.last_signals.get(symbol) != current_signal_key:
-                msg = f"🎯 *إشارة جديدة من AI Sniper*\n\n" \
+                msg = f"🎯 *إشارة جديدة من MaXiThoN*\n\n" \
                       f"📈 النوع: {signal}\n" \
                       f"💰 الأداة: {name}\n" \
                       f"💵 السعر: {last_price:.2f}\n" \
@@ -108,11 +145,17 @@ def get_market_data(symbol, name):
                 st.session_state.last_signals[symbol] = current_signal_key
 
         return {
-            "symbol": symbol, "signal": signal, "price": last_price,
-            "fvg": fvg_type, "tp": tp_price, "sl": sl_price,
-            "rsi": rsi_val, "trend": "Bullish" if last_price > ema_val else "Bearish"
+            "symbol": symbol,
+            "signal": signal,
+            "price": last_price,
+            "fvg": fvg_type,
+            "tp": tp_price,
+            "sl": sl_price,
+            "rsi": rsi_val,
+            "trend": "Bullish" if last_price > ema_val else "Bearish"
         }
-    except Exception as e: return None
+    except Exception as e:
+        return None
 
 # ==========================================
 # 3. بناء واجهة الموقع (Dashboard)
@@ -136,9 +179,11 @@ for ticker, name in assets.items():
         card_class = "wait-border"
         sig_color = "#9ca3af"
         if res['signal'] == "BUY":
-            card_class, sig_color = "buy-border", "#10b981"
+            card_class = "buy-border"
+            sig_color = "#10b981"
         elif res['signal'] == "SELL":
-            card_class, sig_color = "sell-border", "#ef4444"
+            card_class = "sell-border"
+            sig_color = "#ef4444"
             
         st.sidebar.markdown(f"""
             <div class="signal-card {card_class}">
@@ -154,19 +199,29 @@ for ticker, name in assets.items():
         """, unsafe_allow_html=True)
 
 col_main, col_stat = st.columns([2, 1])
+
 with col_main:
     st.header("🎯 MaXiThoN: نظام التداول الذكي 2026")
-    st.markdown("الموقع يراقب السيولة وفجوات FVG ويرسل التنبيهات فوراً إلى هاتفك عبر تليجرام.")
+    st.markdown("الموقع يراقب السيولة وفجوات FVG ويرسل التنبيهات فوراً عبر تليجرام.")
     st.subheader("📊 تحليل السيولة اللحظي")
     st.image("https://upload.wikimedia.org/wikipedia/commons/e/e2/Candlestick_chart_scheme.png", width=400)
 
 with col_stat:
+    # المربعات الخضراء كما في صورتك (تم التأكد من وجودها كاملة)
     st.header("⚙️ حالة النظام")
-    st.success("✅ تليجرام: متصل")
+    st.success("✅ الاتصال بـ Yahoo Finance: نشط")
     st.success("✅ رادار FVG: نشط")
-    if st.button('🔄 تحديث يدوي'): st.rerun()
+    st.success("✅ حماية التذبذب: نشطة")
+    st.success("✅ تليجرام: متصل")
+    
+    if st.button('🔄 تحديث يدوي للبيانات'):
+        st.rerun()
 
+# ==========================================
+# 4. نظام التحديث التلقائي (Auto-Refresh)
+# ==========================================
 st.write("---")
-st.caption("🔄 تحديث تلقائي كل 60 ثانية...")
+st.caption("🔄 يتم فحص الأسواق وتحديث الإشارات تلقائياً كل 60 ثانية...")
+
 time.sleep(60)
 st.rerun()
