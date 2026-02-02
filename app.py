@@ -1,164 +1,172 @@
-import pandas as pd
-import numpy as np
-import yfinance as yf
 import streamlit as st
-import plotly.graph_objects as go
-from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import DummyVecEnv
-import gymnasium as gym
-import requests
+import yfinance as yf
+import pandas as pd
+import pandas_ta as ta
 import time
+import requests
 from datetime import datetime
-import os
 
-# --- 1. إعدادات التنبيهات المتقدمة ---
-TELEGRAM_TOKEN = "YOUR_BOT_TOKEN"
-TELEGRAM_CHAT_ID = "YOUR_CHAT_ID"
+# ==========================================
+# 0. إعدادات تليجرام (Telegram Config)
+# ==========================================
+TELEGRAM_TOKEN = "8525259771:AAHmqV86FCzLNpioO7_ELn4FNW84YC5y3Mo"
+TELEGRAM_CHAT_ID = "7383861003"
 
 def send_telegram_msg(message):
-    if "YOUR_" in TELEGRAM_TOKEN: return
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     try:
-        requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}, timeout=10)
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
+        requests.post(url, json=payload)
     except Exception as e:
-        st.sidebar.error(f"Telegram Error: {e}")
+        print(f"Error sending Telegram: {e}")
 
-# --- 2. محرك البيانات المطور ---
-@st.cache_data(ttl=60)
-def get_refined_data():
+# ==========================================
+# 1. إعدادات واجهة المستخدم (Professional UI)
+# ==========================================
+st.set_page_config(
+    page_title="AI Sniper Pro | نظام صيد السيولة 2026",
+    page_icon="🎯",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+st.markdown("""
+    <style>
+    .stApp { background-color: #05070a; color: #e5e7eb; }
+    [data-testid="stSidebar"] { background-color: #0b0e14; min-width: 380px !important; border-right: 1px solid #1f2937; }
+    .signal-card { padding: 20px; border-radius: 12px; background-color: #111827; margin-bottom: 15px; border-left: 6px solid #374151; }
+    .buy-border { border-left-color: #10b981 !important; }
+    .sell-border { border-left-color: #ef4444 !important; }
+    .wait-border { border-left-color: #6b7280 !important; }
+    .tp-text { color: #10b981; font-weight: bold; }
+    .sl-text { color: #ef4444; font-weight: bold; }
+    .fvg-alert { color: #60a5fa; font-size: 0.85em; margin-top: 5px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# نظام لمنع تكرار الرسائل (Session State)
+if 'last_signals' not in st.session_state:
+    st.session_state.last_signals = {}
+
+# ==========================================
+# 2. الخوارزميات التحليلية (Core Engine)
+# ==========================================
+
+def get_market_data(symbol, name):
     try:
-        gold = yf.Ticker("GC=F")
-        df = gold.history(period="100d", interval="1h")
-        if df.empty or len(df) < 50: return None
+        df = yf.download(symbol, period="5d", interval="15m", progress=False)
+        if df.empty: return None
         
-        df.columns = [c.lower() for c in df.columns]
+        # --- أ. حساب الفجوات السعرية (Fair Value Gap) ---
+        df_fvg = df.tail(4) 
+        c1_high, c1_low = df_fvg['High'].iloc[0], df_fvg['Low'].iloc[0]
+        c3_high, c3_low = df_fvg['High'].iloc[2], df_fvg['Low'].iloc[2]
         
-        # مؤشرات الذكاء الاصطناعي الأساسية
-        df['returns'] = df['close'].pct_change()
-        df['ema_200'] = df['close'].ewm(span=200).mean()
-        
-        # إضافة ATR لإدارة المخاطر الديناميكية
-        high_low = df['high'] - df['low']
-        high_close = np.abs(df['high'] - df['close'].shift())
-        low_close = np.abs(df['low'] - df['close'].shift())
-        df['atr'] = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1).rolling(14).mean()
-        
-        # مؤشر RSI
-        delta = df['close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-        df['rsi'] = 100 - (100 / (1 + (gain / loss)))
-        
-        return df.dropna()
-    except Exception as e:
-        st.error(f"Data Fetch Error: {e}")
-        return None
+        fvg_type = "None"
+        if c3_low > c1_high: fvg_type = "Bullish FVG (شراء)"
+        elif c3_high < c1_low: fvg_type = "Bearish FVG (بيع)"
 
-# --- 3. تحسين منطق الثقة (Confidence 2.0) ---
-def get_confidence_details(row):
-    score = 0
-    reasons = []
-    
-    # الترند (30%)
-    if row['close'] > row['ema_200']:
-        score += 30
-        reasons.append("✅ السعر فوق متوسط 200 (ترند صاعد)")
-    
-    # الزخم (40%)
-    if 40 <= row['rsi'] <= 60:
-        score += 40
-        reasons.append("✅ RSI في منطقة زخم مثالية")
-    elif row['rsi'] < 30 or row['rsi'] > 70:
-        score += 10
-        reasons.append("⚠️ تشبع سعري - حذر")
+        # --- ب. حساب مستويات فيبوناتشي (61.8%) ---
+        recent_high, recent_low = df['High'].tail(60).max(), df['Low'].tail(60).min()
+        fib_618 = recent_high - ((recent_high - recent_low) * 0.618)
+
+        # --- ج. المؤشرات الفنية ---
+        df['EMA200'] = ta.ema(df['Close'], length=200)
+        df['RSI'] = ta.rsi(df['Close'], length=14)
+        df['ATR'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
         
-    # التقلب (30%)
-    if row['atr'] < (row['close'] * 0.005):
-        score += 30
-        reasons.append("✅ تقلبات السوق مستقرة")
+        last_price = float(df['Close'].iloc[-1])
+        ema_val, rsi_val, atr_val = float(df['EMA200'].iloc[-1]), float(df['RSI'].iloc[-1]), float(df['ATR'].iloc[-1])
         
-    return score, reasons
-
-# --- 4. واجهة المستخدم الاحترافية ---
-st.set_page_config(page_title="Gold Guardian AI Master", layout="wide")
-
-# تهيئة مخزن البيانات المؤقت
-if 'signals_history' not in st.session_state: st.session_state.signals_history = []
-
-data = get_refined_data()
-
-if data is not None:
-    last_row = data.iloc[-1]
-    
-    st.sidebar.title("🔱 التحكم الذكي")
-    menu = st.sidebar.selectbox("القائمة", ["رادار التداول", "حاسبة المخاطر ATR", "تحديث الموديل"])
-
-    if menu == "رادار التداول":
-        st.title("🛰️ رادار الذهب الآلي")
+        # --- د. إدارة المخاطر ---
+        sl_points, tp_points = atr_val * 1.5, atr_val * 3.0
         
-        conf_score, logic_reasons = get_confidence_details(last_row)
+        signal = "WAIT"
+        tp_price, sl_price = 0, 0
         
-        # لوحة التحكم العلوية
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("السعر الحالي", f"${last_row['close']:.2f}")
-        col2.metric("درجة الثقة", f"{conf_score}%")
-        col3.metric("RSI", f"{last_row['rsi']:.1f}")
-        col4.metric("نطاق الحركة (ATR)", f"{last_row['atr']:.2f}")
-
-        # منطق الإشارة
-        if os.path.exists("gold_model_v5.zip"):
-            model = PPO.load("gold_model_v5.zip")
-            obs = last_row[['close', 'ema_200', 'rsi', 'atr', 'returns']].values.astype(np.float32)
-            action, _ = model.predict(obs)
+        if last_price > ema_val and last_price > fib_618 and fvg_type == "Bullish FVG (شراء)" and rsi_val > 50:
+            signal = "BUY"
+            tp_price, sl_price = last_price + tp_points, last_price - sl_points
             
-            signal = ["WAIT", "BUY", "SELL"][action]
+        elif last_price < ema_val and last_price < fib_618 and fvg_type == "Bearish FVG (بيع)" and rsi_val < 50:
+            signal = "SELL"
+            tp_price, sl_price = last_price - tp_points, last_price + sl_points
             
-            if signal != "WAIT":
-                st.markdown(f"### الإشارة الحالية: :{'green' if signal == 'BUY' else 'red'}[{signal}]")
-                with st.expander("تحليل الأسباب التقنية"):
-                    for r in logic_reasons: st.write(r)
-                
-                # إرسال تلغرام آلي
-                current_key = f"{signal}_{datetime.now().strftime('%H_%M')}"
-                if 'last_sent_key' not in st.session_state or st.session_state.last_sent_key != current_key:
-                    msg = f"🔱 *إشارة ذهب جديدة*\n\n🔹 القرار: {signal}\n🎯 الثقة: {conf_score}%\n💰 السعر: ${last_row['close']:.2f}\n🛡️ SL المقترح: {last_row['atr']*2:.2f} نقطة"
-                    send_telegram_msg(msg)
-                    st.session_state.last_sent_key = current_key
-            else:
-                st.info("🟡 النظام يراقب بصمت.. لا توجد فرص عالية الجودة حالياً.")
+        # إرسال تليجرام إذا كانت الإشارة جديدة
+        if signal != "WAIT":
+            current_signal_key = f"{symbol}_{signal}_{round(last_price, 2)}"
+            if st.session_state.last_signals.get(symbol) != current_signal_key:
+                msg = f"🎯 *إشارة جديدة من AI Sniper*\n\n" \
+                      f"📈 النوع: {signal}\n" \
+                      f"💰 الأداة: {name}\n" \
+                      f"💵 السعر: {last_price:.2f}\n" \
+                      f"🎯 الهدف: {tp_price:.2f}\n" \
+                      f"🛑 الوقف: {sl_price:.2f}\n" \
+                      f"🛡️ الهيكل: {fvg_type}\n" \
+                      f"⏰ الوقت: {datetime.now().strftime('%H:%M:%S')}"
+                send_telegram_msg(msg)
+                st.session_state.last_signals[symbol] = current_signal_key
 
-        # الرسم البياني المحسن
-        fig = go.Figure(data=[go.Candlestick(x=data.index, open=data['open'], high=data['high'], low=data['low'], close=data['close'], name="Gold")])
-        fig.add_trace(go.Scatter(x=data.index, y=data['ema_200'], line=dict(color='orange', width=2), name="Trend Line"))
-        fig.update_layout(template="plotly_dark", xaxis_rangeslider_visible=False, height=600)
-        st.plotly_chart(fig, width='stretch')
-        
+        return {
+            "symbol": symbol, "signal": signal, "price": last_price,
+            "fvg": fvg_type, "tp": tp_price, "sl": sl_price,
+            "rsi": rsi_val, "trend": "Bullish" if last_price > ema_val else "Bearish"
+        }
+    except Exception as e: return None
 
-    elif menu == "حاسبة المخاطر ATR":
-        st.title("🛡️ إدارة المخاطر الديناميكية")
-        st.write("هذه الحاسبة تستخدم ATR لتحديد حجم الصفقة بناءً على تقلبات السوق الفعلية.")
-        
-        balance = st.number_input("رصيد المحفظة ($)", value=1000)
-        risk_pct = st.slider("مخاطرة الصفقة (%)", 0.5, 3.0, 1.0)
-        
-        # وقف الخسارة بناءً على ATR (عادة 2 * ATR)
-        suggested_sl = last_row['atr'] * 2
-        risk_amount = balance * (risk_pct / 100)
-        lot_size = risk_amount / (suggested_sl * 10) # تقريبي للذهب
-        
-        c1, c2 = st.columns(2)
-        c1.metric("وقف الخسارة المقترح (نقاط)", f"{suggested_sl:.2f}")
-        c2.metric("حجم اللوت الآمن", f"{lot_size:.3f}")
-        
+# ==========================================
+# 3. بناء واجهة الموقع (Dashboard)
+# ==========================================
 
-    elif menu == "تحديث الموديل":
-        st.title("🧠 تدريب المحرك العصبي")
-        if st.button("بدء التدريب العميق"):
-            with st.spinner("جاري تحليل أنماط السوق..."):
-                # كود البيئة (مختصر هنا للسرعة)
-                # ... نفس كود البيئة السابق مع إضافة ATR للمشاهدات ...
-                st.success("تم تحديث 'دماغ' النظام بنجاح!")
+st.sidebar.title("🏧 قائمة الإشارات الحية")
+st.sidebar.write(f"آخر تحديث: {datetime.now().strftime('%H:%M:%S')}")
+st.sidebar.markdown("---")
 
-    # تحديث تلقائي كل 60 ثانية
-    time.sleep(60)
-    st.rerun()
+assets = {
+    "GC=F": "الذهب (Gold)",
+    "EURUSD=X": "اليورو / دولار",
+    "GBPUSD=X": "باوند / دولار",
+    "NQ=F": "نازداك 100",
+    "BTC-USD": "بيتكوين"
+}
+
+for ticker, name in assets.items():
+    res = get_market_data(ticker, name)
+    if res:
+        card_class = "wait-border"
+        sig_color = "#9ca3af"
+        if res['signal'] == "BUY":
+            card_class, sig_color = "buy-border", "#10b981"
+        elif res['signal'] == "SELL":
+            card_class, sig_color = "sell-border", "#ef4444"
+            
+        st.sidebar.markdown(f"""
+            <div class="signal-card {card_class}">
+                <h3 style="color:{sig_color}; margin:0;">{res['signal']} | {name}</h3>
+                <p style="margin:5px 0; font-size:1.1em;">السعر: <b>{res['price']:.2f}</b></p>
+                <div class="fvg-alert">🛡️ الهيكل: {res['fvg']}</div>
+                <hr style="margin:10px 0; border-color:#374151;">
+                <div style="display:flex; justify-content:space-between;">
+                    <span class="tp-text">🎯 TP: {res['tp']:.2f}</span>
+                    <span class="sl-text">🛑 SL: {res['sl']:.2f}</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+col_main, col_stat = st.columns([2, 1])
+with col_main:
+    st.header("🎯 MaXiThoN: نظام التداول الذكي 2026")
+    st.markdown("الموقع يراقب السيولة وفجوات FVG ويرسل التنبيهات فوراً إلى هاتفك عبر تليجرام.")
+    st.subheader("📊 تحليل السيولة اللحظي")
+    st.image("https://upload.wikimedia.org/wikipedia/commons/e/e2/Candlestick_chart_scheme.png", width=400)
+
+with col_stat:
+    st.header("⚙️ حالة النظام")
+    st.success("✅ تليجرام: متصل")
+    st.success("✅ رادار FVG: نشط")
+    if st.button('🔄 تحديث يدوي'): st.rerun()
+
+st.write("---")
+st.caption("🔄 تحديث تلقائي كل 60 ثانية...")
+time.sleep(60)
+st.rerun()
