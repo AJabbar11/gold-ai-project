@@ -5,6 +5,7 @@ import pandas_ta as ta
 import time
 import requests
 from datetime import datetime
+st.set_page_config(menu_items=None)
 
 # ==========================================
 # 0. إعدادات تليجرام (Telegram Config)
