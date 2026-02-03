@@ -1,4 +1,27 @@
 import streamlit as st
+
+st.set_page_config(
+    page_title="اسم موقعك",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': None
+    }
+)
+
+# كود لإخفاء أيقونة GitHub وشريط القائمة تماماً باستخدام CSS
+hide_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    </style>
+    """
+st.markdown(hide_style, unsafe_allow_html=True)
+
+import streamlit as st
 import yfinance as yf
 import pandas as pd
 import pandas_ta as ta
