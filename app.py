@@ -1,14 +1,18 @@
 import streamlit as st
 
-# كود شامل لإخفاء القائمة، العلامة المائية، والترويسة
-hide_st_style = """
+# كود CSS مكثف لإخفاء أي عنصر متعلق بـ Streamlit
+hide_all_streamlit_elements = """
             <style>
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
+            /* هذا السطر مخصص لإخفاء علامة التاج الحمراء والشريط السفلي */
+            div[data-testid="stStatusWidget"] {visibility: hidden;}
+            .stAppDeployButton {display:none;}
+            #stDecoration {display:none;}
             </style>
             """
-st.markdown(hide_st_style, unsafe_allow_html=True)
+st.markdown(hide_all_streamlit_elements, unsafe_allow_html=True)
 
 import streamlit as st
 
