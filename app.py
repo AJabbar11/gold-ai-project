@@ -1,5 +1,24 @@
 import streamlit as st
 
+# كود CSS مكثف لا يترك مجالاً لأي عنصر من Streamlit بالظهور
+hide_everything = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    [data-testid="stDecoration"] {display: none;}
+    [data-testid="stStatusWidget"] {display: none;}
+    .stAppDeployButton {display: none;}
+    /* إخفاء شريط الأدوات بالكامل */
+    div[data-testid="stToolbar"] {visibility: hidden;}
+    /* إخفاء زر المساعدة وعلامات التنبيه في الأسفل */
+    .st-emotion-cache-1kyx97a {display: none;} 
+    </style>
+    """
+st.markdown(hide_everything, unsafe_allow_html=True)
+
+import streamlit as st
+
 # كود CSS مكثف لإخفاء أي عنصر متعلق بـ Streamlit
 hide_all_streamlit_elements = """
             <style>
