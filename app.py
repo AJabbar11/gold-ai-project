@@ -1,21 +1,30 @@
 import streamlit as st
 
-# كود CSS مكثف لا يترك مجالاً لأي عنصر من Streamlit بالظهور
-hide_everything = """
+# كود لتغطية شريط الأدوات السفلي بالكامل
+st.markdown("""
     <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    [data-testid="stDecoration"] {display: none;}
-    [data-testid="stStatusWidget"] {display: none;}
-    .stAppDeployButton {display: none;}
-    /* إخفاء شريط الأدوات بالكامل */
-    div[data-testid="stToolbar"] {visibility: hidden;}
-    /* إخفاء زر المساعدة وعلامات التنبيه في الأسفل */
-    .st-emotion-cache-1kyx97a {display: none;} 
+    /* إخفاء العناصر الأصلية */
+    [data-testid="stStatusWidget"], .stDeployButton, footer {
+        display: none !important;
+    }
+
+    /* إنشاء طبقة تغطية للمنطقة اليمنى واليسرى في الأسفل */
+    .viewerBadge_container__1QSob {
+        display: none !important;
+    }
+    
+    /* تغطية أيقونة التاج وصورة الحساب بقوة CSS */
+    div[data-testid="stToolbar"] {
+        display: none !important;
+    }
+
+    /* هذا الجزء سيمسح خلفية الأيقونات التي تظهر في صورتك */
+    #stDecoration {
+        display: none !important;
+    }
     </style>
-    """
-st.markdown(hide_everything, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+
 
 import streamlit as st
 
