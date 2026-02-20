@@ -7,17 +7,31 @@ import requests
 from datetime import datetime
 import streamlit as st
 
-# كود لإخفاء أيقونات الشريط العلوي (Deploy, Menu, etc.)
-hide_st_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            </style>
-            """
-st.markdown(hide_st_style, unsafe_allow_html=True)
+# كود CSS قوي لإخفاء شريط الأدوات العلوي بالكامل
+hide_streamlit_style = """
+    <style>
+    /* إخفاء شريط الأدوات العلوي (بما فيه أيقونة القارب والبروفايل) */
+    [data-testid="stHeader"] {
+        display: none;
+    }
+    
+    /* إخفاء القائمة الجانبية في حال أردت ذلك */
+    #MainMenu {visibility: hidden;}
+    
+    /* إخفاء التذييل الأسفل */
+    footer {visibility: hidden;}
+    
+    /* ضبط المسافة العلوية لكي لا يظهر فراغ مكان الشريط المخفي */
+    .block-container {
+        padding-top: 2rem;
+    }
+    </style>
+    """
 
-st.title("مرحباً بك في تطبيقي!")
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+# ابدأ محتوى تطبيقك هنا
+st.write("تم إخفاء الأيقونات بنجاح!")
 # ==========================================
 # 0. إعدادات تليجرام (تأكد من صحة التوكن)
 # ==========================================
