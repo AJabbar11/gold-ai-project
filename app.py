@@ -5,7 +5,19 @@ import pandas_ta as ta
 import time
 import requests
 from datetime import datetime
+import streamlit as st
 
+# كود لإخفاء أيقونات الشريط العلوي (Deploy, Menu, etc.)
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
+st.title("مرحباً بك في تطبيقي!")
 # ==========================================
 # 0. إعدادات تليجرام (تأكد من صحة التوكن)
 # ==========================================
