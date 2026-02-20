@@ -38,38 +38,20 @@ st.markdown("""
     """, unsafe_allow_html=True)
 import streamlit as st
 
+# تأكد أن هذا الكود داخل الدالة وبصيغة نصية
 st.markdown("""
     <style>
-    /* 1. إخفاء أي عنصر عائم في الزوايا (الأيقونات التي تظهر في صورتك) */
-    [data-testid="stStatusWidget"],
-    [data-testid="stAppDeploy"],
-    [data-testid="stToolbar"],
-    .stAppToolbar,
-    div[class*="st-emotion-cache-"] > button {
+    /* كود إخفاء عناصر أوبرا أو الإضافات */
+    iframe, div[id*="opera"], div[class*="extension"] {
         display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
     }
-
-    /* 2. إخفاء الرأس والقائمة تماماً */
+    
+    /* إخفاء شريط ستريمليت أيضاً */
     header, [data-testid="stHeader"] {
         display: none !important;
     }
-
-    /* 3. إخفاء أي تذييل أو علامة مائية */
-    footer {
-        display: none !important;
-    }
-
-    /* 4. إجبار التطبيق على استغلال المساحة كاملة بدون حواف */
-    .main .block-container {
-        padding: 0rem !important;
-    }
     </style>
     """, unsafe_allow_html=True)
-iframe, div[id*="opera"], div[class*="extension"] {
-    display: none !important;
-}
 # باقي كود تطبيقك هنا...
 # ==========================================
 # 0. إعدادات تليجرام (تأكد من صحة التوكن)
