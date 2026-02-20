@@ -40,29 +40,30 @@ import streamlit as st
 
 st.markdown("""
     <style>
-    /* 1. إخفاء الشريط العلوي */
-    header[data-testid="stHeader"] {
-        display: none !important;
-    }
-
-    /* 2. إخفاء أيقونات الـ Toolbar التي تظهر في الأسفل أو الأعلى */
-    [data-testid="stStatusWidget"], 
+    /* 1. إخفاء أي عنصر عائم في الزوايا (الأيقونات التي تظهر في صورتك) */
+    [data-testid="stStatusWidget"],
     [data-testid="stAppDeploy"],
-    .stAppToolbar, 
-    .st-emotion-cache-15ec60u, 
-    .st-emotion-cache-1vq4p4l {
+    [data-testid="stToolbar"],
+    .stAppToolbar,
+    div[class*="st-emotion-cache-"] > button {
         display: none !important;
         visibility: hidden !important;
+        opacity: 0 !important;
     }
 
-    /* 3. إخفاء القائمة والتذييل */
-    #MainMenu {visibility: hidden !important;}
-    footer {visibility: hidden !important;}
+    /* 2. إخفاء الرأس والقائمة تماماً */
+    header, [data-testid="stHeader"] {
+        display: none !important;
+    }
 
-    /* 4. تعديل الحواف لملء الفراغ */
-    .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 0rem !important;
+    /* 3. إخفاء أي تذييل أو علامة مائية */
+    footer {
+        display: none !important;
+    }
+
+    /* 4. إجبار التطبيق على استغلال المساحة كاملة بدون حواف */
+    .main .block-container {
+        padding: 0rem !important;
     }
     </style>
     """, unsafe_allow_html=True)
