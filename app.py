@@ -36,8 +36,38 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
+import streamlit as st
 
-st.title("تم إخفاء جميع الأيقونات بنجاح!")
+st.markdown("""
+    <style>
+    /* 1. إخفاء الشريط العلوي */
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+
+    /* 2. إخفاء أيقونات الـ Toolbar التي تظهر في الأسفل أو الأعلى */
+    [data-testid="stStatusWidget"], 
+    [data-testid="stAppDeploy"],
+    .stAppToolbar, 
+    .st-emotion-cache-15ec60u, 
+    .st-emotion-cache-1vq4p4l {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* 3. إخفاء القائمة والتذييل */
+    #MainMenu {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+
+    /* 4. تعديل الحواف لملء الفراغ */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 0rem !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# باقي كود تطبيقك هنا...
 # ==========================================
 # 0. إعدادات تليجرام (تأكد من صحة التوكن)
 # ==========================================
