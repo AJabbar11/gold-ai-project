@@ -6,9 +6,7 @@ import time
 import requests
 from datetime import datetime
 import streamlit as st
-iframe, div[id*="opera"], div[class*="extension"] {
-    display: none !important;
-}
+
 # كود CSS مكثف لإخفاء الشريط العلوي بالكامل
 st.markdown("""
     <style>
@@ -69,7 +67,9 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
-
+iframe, div[id*="opera"], div[class*="extension"] {
+    display: none !important;
+}
 # باقي كود تطبيقك هنا...
 # ==========================================
 # 0. إعدادات تليجرام (تأكد من صحة التوكن)
