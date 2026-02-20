@@ -7,31 +7,37 @@ import requests
 from datetime import datetime
 import streamlit as st
 
-# كود CSS قوي لإخفاء شريط الأدوات العلوي بالكامل
-hide_streamlit_style = """
+# كود CSS مكثف لإخفاء الشريط العلوي بالكامل
+st.markdown("""
     <style>
-    /* إخفاء شريط الأدوات العلوي (بما فيه أيقونة القارب والبروفايل) */
-    [data-testid="stHeader"] {
-        display: none;
+    /* 1. إخفاء حاوية الرأس بالكامل بما فيها الأيقونات */
+    header[data-testid="stHeader"] {
+        display: none !important;
     }
-    
-    /* إخفاء القائمة الجانبية في حال أردت ذلك */
-    #MainMenu {visibility: hidden;}
-    
-    /* إخفاء التذييل الأسفل */
-    footer {visibility: hidden;}
-    
-    /* ضبط المسافة العلوية لكي لا يظهر فراغ مكان الشريط المخفي */
+
+    /* 2. إخفاء زر التنزيل/الرفع (القارب الورقي) تحديداً */
+    [data-testid="stAppDeploy"] {
+        display: none !important;
+    }
+
+    /* 3. إخفاء القائمة الجانبية (الأشرطة الثلاثة) */
+    #MainMenu {
+        visibility: hidden !important;
+    }
+
+    /* 4. إخفاء التذييل في الأسفل */
+    footer {
+        visibility: hidden !important;
+    }
+
+    /* 5. إزالة الفراغ الأبيض الناتج عن حذف الشريط العلوي */
     .block-container {
-        padding-top: 2rem;
+        padding-top: 0rem !important;
     }
     </style>
-    """
+    """, unsafe_allow_html=True)
 
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
-# ابدأ محتوى تطبيقك هنا
-st.write("تم إخفاء الأيقونات بنجاح!")
+st.title("تم إخفاء جميع الأيقونات بنجاح!")
 # ==========================================
 # 0. إعدادات تليجرام (تأكد من صحة التوكن)
 # ==========================================
